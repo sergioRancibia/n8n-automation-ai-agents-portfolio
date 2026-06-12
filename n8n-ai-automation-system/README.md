@@ -69,8 +69,39 @@ This directory contains a complete AI-powered workflow automation system built w
     ```
 
 *   `subir-pdf.json`: An administrative workflow to upload PDF documents to the vector store.
+    ```mermaid
+    graph TD
+        A[Form Submission: PDF Upload] --> B[(Revisar_doc_repetido)]
+        B --> C[(Borrar_chunks_repetidos)]
+        C --> D[(Borrar_documento_repetido)]
+        D --> E(Recuperar_binario)
+        E --> F{Switch}
+        F --> G[Extract text from File]
+        G --> H[Merge]
+        H --> I[(Insertar nuevo documento)]
+        I --> J(Chunking)
+        J --> K(Embeddings Openrouter)
+        K --> L(Formatear_pre_insert)
+        L --> M[(Insertar_embeddings Supabase)]
+    ```
+
 *   `manejo-errores.json`: A global error handling workflow to log failures and notify administrators.
+    ```mermaid
+    graph TD
+        A[Error Trigger] --> B[LLM Chain: Translate Error]
+        B --> C(Parsear_mensaje_de_error)
+        C --> D[Enviar_mensaje_cliente WhatsApp]
+        D --> E[Enviar_mensaje_tecnico WhatsApp]
+        E --> F[(Metricas_error Supabase)]
+    ```
+
 *   `actualizar-tokens.json`: A scheduled workflow to update AI model token pricing.
+    ```mermaid
+    graph LR
+        A[Schedule Trigger] --> B(Fetch Openrouter Models API)
+        B --> C(Clasificar_modelos)
+        C --> D[(Insertar_precios Supabase)]
+    ```
 
 ## Note on Credentials
 All sensitive credentials, API keys, and phone numbers have been redacted (`YOUR_API_KEY`, `YOUR_WEBHOOK_ID`, etc.) for security. To import these workflows into your n8n instance, you must configure the corresponding credentials in your environment.
