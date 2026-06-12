@@ -1,0 +1,137 @@
+{
+  "name": "Actualizar_preciosxtoken_ia",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "7c772283-ed36-4678-ba43-f0ef490d8228",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "https://openrouter.ai/api/v1/models",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "f4a70dbd-7bc6-460b-9466-86a819fc3635",
+      "name": "Embeddings_Openrouter"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO precios_modelos (modelo, precio_input, precio_output, updated_at)\nVALUES (\n  '{{ $json.modelo }}',\n  {{ $json.precio_input }},\n  {{ $json.precio_output }},\n  NOW()\n)\nON CONFLICT (modelo)\nDO UPDATE SET\n  precio_input = EXCLUDED.precio_input,\n  precio_output = EXCLUDED.precio_output,\n  updated_at = NOW();",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        624,
+        0
+      ],
+      "id": "c28d7ddb-83df-4691-a55c-3f35acc21381",
+      "name": "Insertar_precios",
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const modelos = $input.first().json.data;\n\nconst modelosDeseados = [\n  'openai/text-embedding-3-small',\n  'meta-llama/llama-3.1-8b-instruct',\n  'google/gemini-2.5-flash'\n];\n\nconst result = [];\n\nfor (const modelo of modelos) {\n  if (modelosDeseados.some(m => modelo.id.includes(m.split('/')[1]))) {\n    result.push({\n      json: {\n        modelo: modelo.id,\n        precio_input: parseFloat(modelo.pricing.prompt),\n        precio_output: parseFloat(modelo.pricing.completion)\n      }\n    });\n  }\n}\n\n// Si no encuentra alguno, agregar precios fijos como fallback\nconst encontrados = result.map(r => r.json.modelo);\n\nif (!encontrados.some(m => m.includes('text-embedding'))) {\n  result.push({ json: { modelo: 'openai/text-embedding-3-small', precio_input: 0.00000002, precio_output: 0.00000002 } });\n}\nif (!encontrados.some(m => m.includes('llama-3.1-8b'))) {\n  result.push({ json: { modelo: 'meta-llama/llama-3.1-8b-instruct', precio_input: 0.00000005, precio_output: 0.00000008 } });\n}\nif (!encontrados.some(m => m.includes('gemini-2.5-flash'))) {\n  result.push({ json: { modelo: 'google/gemini-2.5-flash', precio_input: 0.0000003, precio_output: 0.0000025 } });\n}\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "faf37cf4-ce2c-400e-a8c8-725bc660de46",
+      "name": "Clasificar_modelos"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Embeddings_Openrouter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings_Openrouter": {
+      "main": [
+        [
+          {
+            "node": "Clasificar_modelos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clasificar_modelos": {
+      "main": [
+        [
+          {
+            "node": "Insertar_precios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "Lg4ma3dxwZeqgxOJDE0ew",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "e6a24f31-e8c2-4cf8-91ec-4f8336e981f9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e7d9cdb62f89063308717315c74ebcc8bce4d6f3340640907dc17977a9ebe636"
+  },
+  "id": "Nt_TG8twqBci0YAGNqGe1",
+  "tags": []
+}

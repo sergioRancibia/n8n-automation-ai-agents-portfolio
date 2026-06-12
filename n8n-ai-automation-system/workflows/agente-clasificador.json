@@ -1,0 +1,321 @@
+{
+  "name": "Agente_Clasificador_final",
+  "nodes": [
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mensaje_actual }}",
+        "needsFallback": true,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "message": "=Historial:\n{{ $json.historial_texto }}\n\nMensaje del cliente: {{ $json.mensaje_actual }}"
+            },
+            {
+              "message": "Eres un clasificador de tickets de atención al cliente de Inmobiliaria CBBA, Cochabamba, Bolivia. Analiza el mensaje del cliente y responde ÚNICAMENTE con este JSON, sin texto adicional: {   \"urgencia\": \"alta/media/baja\",   \"sentimiento\": \"positivo/neutro/negativo\",   \"categoria\": \"reclamo/consulta/queja/solicitud\",   \"resumen\": \"resumen breve del problema en máximo 15 palabras\" }  Criterios de urgencia: - alta: amenazas legales, problemas graves, cliente muy molesto, situación crítica - media: quejas moderadas, problemas que necesitan solución pronto - baja: consultas simples, sugerencias, comentarios  Criterios de sentimiento: - positivo: satisfacción, agradecimiento, buena experiencia - neutro: consultas simples, sin carga emocional - negativo: molestia, frustración, enojo, decepción"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        480,
+        352
+      ],
+      "id": "25c3c7a0-6f81-4bfd-80c1-1e7bec1d3752",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        432,
+        624
+      ],
+      "id": "56c178bc-38f3-4f54-ae4e-a467e027abd4",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "c5mVSx5rxzbAYnNA",
+          "name": "Groq account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        624,
+        624
+      ],
+      "id": "1f2eb41d-77c9-4747-8463-8d5b9eb08b71",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iDV373zOFOyfOOuZ",
+          "name": "Google Gemini(PaLM) Api account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const respuesta = $input.first().json.text;\nconst datos = $('When_Executed_by_Main_Workflow').first().json;\n\nlet clasificacion;\ntry {\n  const clean = respuesta.replace(/```json|```/g, '').trim();\n  clasificacion = JSON.parse(clean);\n} catch(e) {\n  clasificacion = {\n    urgencia: 'media',\n    sentimiento: 'neutro',\n    categoria: 'consulta',\n    resumen: 'No se pudo clasificar'\n  };\n}\n\n// Reglas de escalamiento\nconst escalar = \n  clasificacion.urgencia === 'alta' || \n  (clasificacion.sentimiento === 'negativo' && datos.es_vip === true);\n\nreturn [{\n  json: {\n    ...datos,\n    urgencia: clasificacion.urgencia,\n    sentimiento: clasificacion.sentimiento,\n    categoria: clasificacion.categoria,\n    resumen: clasificacion.resumen,\n    escalado: escalar,\n    agente_usado: 'CLASIFICADOR'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        832,
+        352
+      ],
+      "id": "45c2219f-fd78-4612-8f91-bc792b99ac27",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When_Executed_by_Main_Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b0b5d036-2d85-425f-9a49-95c1a2becedf",
+              "leftValue": "={{ $json.escalado }}",
+              "rightValue": "={{ $json.escalado }}",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1040,
+        352
+      ],
+      "id": "fbf705dd-e751-4891-a630-4d4e012441ec",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "jsCode": "const datos = $input.first().json;\nconst nombre = datos.nombre ? datos.nombre.split(' ')[0] : 'Cliente';\n\nreturn [{\n  json: {\n    ...datos,\n    respuesta: `Hola ${nombre}, entendemos tu situación y lamentamos los inconvenientes. Tu caso ha sido marcado como prioritario y un agente humano te contactará a la brevedad. Gracias por tu paciencia.`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1472,
+        224
+      ],
+      "id": "57f7b66a-5c54-4f02-9ce5-19926ccc0b28",
+      "name": "Formato_mensaje_cliente"
+    },
+    {
+      "parameters": {
+        "jsCode": "const nombre = $json.nombre.split(' ')[0];\nconst sentimiento = $json.sentimiento;\n\nlet respuesta = '';\n\nif (sentimiento === 'negativo') {\n  respuesta = `Hola ${nombre}, lamentamos mucho los inconvenientes que estás experimentando. Hemos registrado tu caso (${$json.categoria}: ${$json.resumen}). Un representante revisará tu situación y te contactará pronto. ¿Hay algo más en lo que pueda ayudarte?`;\n} else {\n  respuesta = `Hola ${nombre}, hemos registrado tu solicitud (${$json.resumen}). Estaremos atentos para ayudarte. ¿Tienes alguna pregunta adicional?`;\n}\n\nreturn [{\n  json: {\n    ...$json,\n    respuesta\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1248,
+        448
+      ],
+      "id": "9761df61-10f5-470b-a313-18275f18b38a",
+      "name": "Formato_mensaje_sin_escalar"
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1066682589854847",
+        "recipientPhoneNumber": "+59179757761",
+        "textBody": "=🚨 *ESCALAMIENTO - Inmobiliaria CBBA*  \n*Cliente:* {{ $json.nombre }} \n*Teléfono:* {{ $json.telefono }} \n*VIP:* {{ $json.es_vip ? 'Sí' : 'No' }}  \n*Urgencia:* {{ $json.urgencia.toUpperCase() }} \n*Sentimiento:* {{ $json.sentimiento }} \n*Categoría:* {{ $json.categoria }}  \n*Mensaje:* {{ $json.mensaje_actual }} \n*Resumen:* {{ $json.resumen }}  ⚠️ Por favor contactar al cliente a la brevedad.",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        1248,
+        224
+      ],
+      "id": "779bd919-5afc-4c8b-86d8-3780d80adbf0",
+      "name": "Enviar_mensaje_tecnico_a_cargo",
+      "webhookId": "615713ce-4cd8-4a6c-be83-129d4b641234",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "8ZBpjv4pwTJFpKhF",
+          "name": "WhatsApp Bussiness account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1712,
+        352
+      ],
+      "id": "a162bf72-6cff-4662-bd50-813f3328f26b",
+      "name": "Merge"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When_Executed_by_Main_Workflow": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Enviar_mensaje_tecnico_a_cargo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Formato_mensaje_sin_escalar",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar_mensaje_tecnico_a_cargo": {
+      "main": [
+        [
+          {
+            "node": "Formato_mensaje_cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formato_mensaje_cliente": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formato_mensaje_sin_escalar": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "Lg4ma3dxwZeqgxOJDE0ew",
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate"
+  },
+  "versionId": "2d74cc64-5e42-410d-848e-0eae3a8fcbb7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e7d9cdb62f89063308717315c74ebcc8bce4d6f3340640907dc17977a9ebe636"
+  },
+  "id": "k37my59wlOiPi04y",
+  "tags": []
+}

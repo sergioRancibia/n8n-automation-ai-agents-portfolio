@@ -1,0 +1,667 @@
+{
+  "name": "Subir_Docs/PDF_Final",
+  "nodes": [
+    {
+      "parameters": {
+        "formTitle": "Subir Documento para Contexto",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Archivo ",
+              "fieldType": "file",
+              "fieldName": "archivo",
+              "multipleFiles": false,
+              "acceptFileTypes": ".pdf , .docx"
+            }
+          ]
+        },
+        "options": {
+          "appendAttribution": false,
+          "buttonLabel": "Submit",
+          "respondWithOptions": {
+            "values": {
+              "formSubmittedText": "El archivo ha sido subido con exito"
+            }
+          },
+          "ignoreBots": true,
+          "useWorkflowTimezone": false,
+          "customCss": "/* Importamos la fuente Serif equilibrada */\n@import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;1,500&family=Inter:wght@400;500&display=swap');\n\n:root {\n\t--font-family: 'Inter', sans-serif;\n\t--font-serif: 'Lora', serif;\n\t\n\t/* Paleta Bosque Nebuloso */\n\t--color-background: #e2e8e4; \n\t--color-card-bg: rgba(255, 255, 255, 0.7);\n\t--color-card-border: rgba(255, 255, 255, 0.5);\n\t--color-header: #2f3e36;\n\t--color-label: #4a5c52;\n\t--color-input-border: #b0bcba;\n\t--color-input-text: #2f3e36;\n\t--color-focus-border: #7ba08d;\n\t--color-submit-btn-bg: #5a7a68;\n\t--color-submit-btn-text: #ffffff;\n\n\t--border-radius-card: 16px;\n\t--border-radius-input: 8px;\n\t\n\t/* Ajuste de Dimensiones */\n\t--container-width: 500px; /* Ancho más contenido */\n}\n\n/* Fondo y centrado del formulario */\nbody {\n\tbackground: linear-gradient(135deg, #f0f4f2 0%, #e2e8e4 100%) !important;\n\tbackground-attachment: fixed !important;\n\tdisplay: flex !important;\n\talign-items: center !important; /* Centra verticalmente */\n\tjustify-content: center !important;\n\tmin-height: 100vh !important;\n\tmargin: 0 !important;\n\tpadding: 20px !important;\n}\n\n/* Ajuste del contenedor principal para eliminar espacio sobrante */\n.n8n-form-container {\n\twidth: 100% !important;\n\tmax-width: var(--container-width) !important;\n\tpadding-top: 0 !important; /* Quita el espacio superior excesivo */\n}\n\n/* Tarjeta con efecto niebla */\n.n8n-form-card {\n\tbackground-color: var(--color-card-bg) !important;\n\tbackdrop-filter: blur(10px);\n\t-webkit-backdrop-filter: blur(10px);\n\tborder: 1px solid var(--color-card-border) !important;\n\tborder-radius: var(--border-radius-card) !important;\n\tbox-shadow: 0 10px 30px rgba(47, 62, 54, 0.1) !important;\n\tmargin-bottom: 0 !important; /* Evita espacio abajo de la tarjeta */\n}\n\n/* Títulos y Etiquetas */\nh1, .n8n-form-header {\n\tfont-family: var(--font-serif) !important;\n\tfont-weight: 500 !important;\n\tcolor: var(--color-header) !important;\n\tmargin-bottom: 20px !important;\n}\n\nlabel, .n8n-form-label {\n\tfont-family: var(--font-serif) !important;\n\tfont-style: italic !important;\n\tcolor: var(--color-label) !important;\n}\n\n/* Estilo del input de archivo */\ninput[type=\"file\"] {\n\tbackground: rgba(255, 255, 255, 0.4) !important;\n\tborder: 1px dashed var(--color-input-border) !important;\n\tborder-radius: var(--border-radius-input) !important;\n\tpadding: 15px !important;\n}\n\ninput[type=\"file\"]::file-selector-button {\n\tbackground-color: var(--color-submit-btn-bg) !important;\n\tcolor: white !important;\n\tborder: none !important;\n\tpadding: 8px 16px !important;\n\tborder-radius: 6px !important;\n\tfont-family: var(--font-serif) !important;\n\tfont-style: italic !important;\n\tcursor: pointer;\n}\n\n/* Recordatorio sutil */\n.n8n-form-file-upload::after {\n\tcontent: \"Solo se admite un archivo (PDF o DOCX)\";\n\tdisplay: block;\n\tfont-size: 11px;\n\tmargin-top: 10px;\n\tfont-family: var(--font-serif);\n\tfont-style: italic;\n\tcolor: #7a8c82;\n\ttext-align: center;\n}\n\n/* Botón de envío */\n.n8n-form-submit-button {\n\tbackground-color: var(--color-submit-btn-bg) !important;\n\tfont-family: var(--font-serif) !important;\n\tfont-style: italic !important;\n\tborder-radius: var(--border-radius-input) !important;\n\tmargin-top: 10px !important;\n}\n\n/* Ocultar el footer de n8n para limpiar el diseño (opcional) */\nfooter {\n    display: none !important;\n}"
+        }
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.5,
+      "position": [
+        -240,
+        -160
+      ],
+      "id": "dd391007-4caf-4e15-ab34-34edba4ccc1a",
+      "name": "On form submission",
+      "webhookId": "af588be8-9aa8-4117-9d3c-6e7ffe6b2889"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $('On form submission').item.json.archivo.filename }}",
+                    "rightValue": ".pdf",
+                    "operator": {
+                      "type": "string",
+                      "operation": "endsWith"
+                    },
+                    "id": "6d062fd7-f515-4b3f-8dad-4b7b3b55ed51"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "31085fb9-c272-4a5a-be20-ea80d1dbb1cc",
+                    "leftValue": "={{ $('On form submission').item.json.archivo.filename }}",
+                    "rightValue": ".docx",
+                    "operator": {
+                      "type": "string",
+                      "operation": "endsWith"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        784,
+        -160
+      ],
+      "id": "c3f024b2-0430-4923-bf4d-73cd38d358f3",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "archivo",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        1024,
+        -160
+      ],
+      "id": "ed87541b-1253-4091-943c-3bbaed2e2efa",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1280,
+        -160
+      ],
+      "id": "7f91e668-9019-4b39-804d-906784601e6e",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO documentos (nombre, tipo)\nVALUES ('{{ $('On form submission').item.json.archivo.filename }}', '{{ $('On form submission').item.json.archivo.mimetype }}')\nRETURNING id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1488,
+        -160
+      ],
+      "id": "0cb2aec5-7ce4-4c22-981c-5be481d19082",
+      "name": "Execute a SQL query",
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// El texto viene del nodo Extract from PDF\n// El id viene del Postgres insert (nodo anterior)\nconst documento_id = $input.first().json.id;\n\n// Referencia al nodo de extracción - ajusta el nombre exacto\nconst texto = $('Extract from File').item.json.text;\n\nconst chunks = [];\nconst tamano = 500;\nconst solapamiento = 50;\n\nfor (let i = 0; i < texto.length; i += tamano - solapamiento) {\n  const chunk = texto.slice(i, i + tamano).trim();\n  if (chunk.length > 50) {\n    chunks.push({\n      json: {\n        contenido: chunk,\n        documento_id: documento_id,\n        posicion: chunks.length\n      }\n    });\n  }\n}\n\nreturn chunks;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        -160
+      ],
+      "id": "fb712451-eaea-472a-9f0b-abf3d580ae80",
+      "name": "Chunking"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst result = [];\n\nfor (const item of items) {\n  result.push({\n    json: {\n      documento_id: item.json.documento_id,\n      contenido: item.json.contenido,\n      embedding: JSON.stringify(item.json.data[0].embedding),\n      metadata: JSON.stringify({ posicion: item.json.posicion })\n    },\n    pairedItem: item.pairedItem\n  });\n}\n\nreturn result;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2112,
+        -160
+      ],
+      "id": "2b14f0c3-6a48-49d5-837f-beeaa3b5fad9",
+      "name": "Formatear_pre_insert"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO documentos_chunks (documento_id, contenido, embedding, metadata)\nVALUES (\n  '{{ $('Chunking').item.json.documento_id }}'::UUID,\n  '{{ $('Chunking').item.json.contenido }}',\n  '{{ $json.embedding }}'::vector,\n  '{{ $json.metadata }}'::jsonb\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        2320,
+        -160
+      ],
+      "id": "855fcc51-0855-45c4-adfc-50e6d92c019b",
+      "name": "Insertar_embbedings_documentos_chunks",
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id FROM documentos \nWHERE nombre = '{{ $json.archivo.filename }}'\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        -32,
+        -160
+      ],
+      "id": "45a0fb2b-f46b-41d7-a54f-882e3d1c9162",
+      "name": "Revisar_doc_repetido",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM documentos \nWHERE id = '{{ $('Revisar_doc_repetido').item.json.id }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        432,
+        -160
+      ],
+      "id": "20466519-2129-47fc-a3e7-bce654a3974e",
+      "name": "Borrar_documento_repetido",
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "DELETE FROM documentos_chunks \nWHERE documento_id = '{{ $json.id }}';",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        224,
+        -160
+      ],
+      "id": "04cb65fb-302f-4eb7-b81a-68a05dc1e0f5",
+      "name": "Borrar_chunks_repetidos",
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const formItem = $('On form submission').first();\n\nreturn [{\n  json: formItem.json,\n  binary: formItem.binary\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        592,
+        -160
+      ],
+      "id": "06579b09-d3eb-4825-9e4f-4726d33b0c79",
+      "name": "Recuperar_binario"
+    },
+    {
+      "parameters": {
+        "resource": "execution",
+        "operation": "get",
+        "executionId": "={{ $execution.id }}",
+        "options": {},
+        "requestOptions": {}
+      },
+      "type": "n8n-nodes-base.n8n",
+      "typeVersion": 1,
+      "position": [
+        1024,
+        80
+      ],
+      "id": "9adf953c-10ce-4086-ba10-b21a858cbfb0",
+      "name": "Get an execution",
+      "credentials": {
+        "n8nApi": {
+          "id": "JwiWSVtuu2cnxnFP",
+          "name": "n8n account 6"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/embeddings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "text-embedding-3-small"
+            },
+            {
+              "name": "input",
+              "value": "={{ $json.contenido }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        1904,
+        -160
+      ],
+      "id": "87911ec8-477c-4544-8f86-09c89a715214",
+      "name": "Embeddings_Openrouter"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.cloudconvert.com/v2/jobs",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"tasks\": {\n    \"import-my-file\": {\n      \"operation\": \"import/upload\"\n    },\n    \"convert-my-file\": {\n      \"operation\": \"convert\",\n      \"input\": \"import-my-file\",\n      \"input_format\": \"docx\",\n      \"output_format\": \"txt\"\n    },\n    \"export-my-file\": {\n      \"operation\": \"export/url\",\n      \"input\": \"convert-my-file\"\n    }\n  }\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        80
+      ],
+      "id": "f3999165-015c-47c4-b632-eb254e903d4a",
+      "name": "Cloud_convert",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $json.data.tasks[0].result.form.url }}",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "acl",
+              "value": "={{ $json.data.tasks[0].result.form.parameters.acl }}"
+            },
+            {
+              "name": "key",
+              "value": "={{ $json.data.tasks[0].result.form.parameters.key.replace('${filename}', $('On form submission').item.json.archivo.filename) }}"
+            },
+            {
+              "name": "success_action_status",
+              "value": "={{ $json.data.tasks[0].result.form.parameters.success_action_status }}"
+            },
+            {
+              "name": "X-Amz-Credential",
+              "value": "={{ $json.data.tasks[0].result.form.parameters['X-Amz-Credential'] }}"
+            },
+            {
+              "name": "X-Amz-Algorithm",
+              "value": "={{ $json.data.tasks[0].result.form.parameters['X-Amz-Algorithm'] }}"
+            },
+            {
+              "name": "X-Amz-Date",
+              "value": "={{ $json.data.tasks[0].result.form.parameters['X-Amz-Date'] }}"
+            },
+            {
+              "name": "Policy",
+              "value": "={{ $json.data.tasks[0].result.form.parameters.Policy }}"
+            },
+            {
+              "name": "X-Amz-Signature",
+              "value": "={{ $json.data.tasks[0].result.form.parameters['X-Amz-Signature'] }}"
+            },
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "archivo"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        368,
+        80
+      ],
+      "id": "39829f51-9c41-4b3b-9e73-d3fb76713892",
+      "name": "Subir_archivo_docs",
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "url": "=https://api.cloudconvert.com/v2/jobs/{{ $('Cloud_convert').item.json.data.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_SUPABASE_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        656,
+        80
+      ],
+      "id": "d6074f7a-3127-47e5-897e-c87f4e2bcf67",
+      "name": "Esperar_conversion",
+      "disabled": true
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        512,
+        80
+      ],
+      "id": "320dee86-5afe-4510-953e-0d59942d24c3",
+      "name": "Wait",
+      "webhookId": "3e76c8e7-153e-417b-b5a3-881964d9426d",
+      "disabled": true
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Revisar_doc_repetido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Execute a SQL query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute a SQL query": {
+      "main": [
+        [
+          {
+            "node": "Chunking",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Chunking": {
+      "main": [
+        [
+          {
+            "node": "Embeddings_Openrouter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear_pre_insert": {
+      "main": [
+        [
+          {
+            "node": "Insertar_embbedings_documentos_chunks",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Revisar_doc_repetido": {
+      "main": [
+        [
+          {
+            "node": "Borrar_chunks_repetidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar_documento_repetido": {
+      "main": [
+        [
+          {
+            "node": "Recuperar_binario",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Borrar_chunks_repetidos": {
+      "main": [
+        [
+          {
+            "node": "Borrar_documento_repetido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recuperar_binario": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insertar_embbedings_documentos_chunks": {
+      "main": [
+        []
+      ]
+    },
+    "Embeddings_Openrouter": {
+      "main": [
+        [
+          {
+            "node": "Formatear_pre_insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Cloud_convert": {
+      "main": [
+        [
+          {
+            "node": "Subir_archivo_docs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Subir_archivo_docs": {
+      "main": [
+        [
+          {
+            "node": "Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait": {
+      "main": [
+        [
+          {
+            "node": "Esperar_conversion",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "Lg4ma3dxwZeqgxOJDE0ew"
+  },
+  "versionId": "1785d184-1db8-465b-a4fe-f21f23a0f6fb",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e7d9cdb62f89063308717315c74ebcc8bce4d6f3340640907dc17977a9ebe636"
+  },
+  "id": "IsFV7jiPIa-Sfdnp4N78f",
+  "tags": []
+}

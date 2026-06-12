@@ -1,0 +1,275 @@
+{
+  "name": "Mensajes_de_error_final",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "51906708-e38a-4edc-9f7b-59b368ddc56e",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=",
+        "needsFallback": true,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "message": "=Error en el nodo: {{ $json.execution.lastNodeExecuted }}\nMensaje de error: {{ $json.execution.error.message }}\nWorkflow: {{ $json.workflow.name }}"
+            },
+            {
+              "message": "Eres un asistente que traduce errores técnicos a lenguaje natural amigable. Dado un error técnico: Genera DOS mensajes: 1. mensaje_cliente: amigable, sin tecnicismos, menciona que el problema fue en el servicio de atención, sin detalles técnicos 2. mensaje_tecnico: técnico y detallado, incluye nombre del workflow, nodo fallido y mensaje de error exacto. Responde ÚNICAMENTE con este JSON: {   \"mensaje_cliente\": \"texto amigable\",   \"mensaje_tecnico\": \"texto técnico con detalles\" }"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        208,
+        0
+      ],
+      "id": "75f3ca51-e3ea-4b74-83ec-ba78b1957f32",
+      "name": "Basic LLM Chain",
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        160,
+        224
+      ],
+      "id": "09f34601-7db4-4ec5-9775-38766a16101e",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "c5mVSx5rxzbAYnNA",
+          "name": "Groq account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        320,
+        224
+      ],
+      "id": "3c9b69bc-3b0f-4538-8981-92c5b6c06d87",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "LFuK3rmdC455bbC8",
+          "name": "Google Gemini(PaLM) Api account 8"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1066682589854847",
+        "recipientPhoneNumber": "+59179757761",
+        "textBody": "={{ $json.mensaje_cliente }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        768,
+        0
+      ],
+      "id": "88519e30-a0d1-4435-a5ff-e3344f673ef1",
+      "name": "Enviar_mensaje_cliente",
+      "webhookId": "04a318bd-6963-47a6-9982-ef667b1b1185",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "8ZBpjv4pwTJFpKhF",
+          "name": "WhatsApp Bussiness account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "1066682589854847",
+        "recipientPhoneNumber": "+59179757761",
+        "textBody": "=🔴 *ERROR EN SISTEMA* \n*Workflow:* {{ $('Parsear_mensaje_de_error').item.json.workflow }}\n*Nodo:* {{ $('Parsear_mensaje_de_error').item.json.nodo_fallido }} \n*Detalle:* \n{{ $('Parsear_mensaje_de_error').item.json.mensaje_tecnico }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        976,
+        0
+      ],
+      "id": "56f737e9-313d-40ae-92f7-dca715af06f1",
+      "name": "Enviar_mensaje_tecnico",
+      "webhookId": "befcf4f7-5bf1-4b6a-b487-fb38fb01368c",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "8ZBpjv4pwTJFpKhF",
+          "name": "WhatsApp Bussiness account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO metricas (cliente_id, modelo, tiempo_ms, estado)\nVALUES (\n  NULL,\n  'sistema',\n  0,\n  'error'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1184,
+        0
+      ],
+      "id": "dbbbf3c5-1a4f-43de-8416-a0090e239238",
+      "name": "Metricas_error",
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const respuesta = $input.first().json.text;\n\nlet mensajes;\ntry {\n  const clean = respuesta.replace(/```json|```/g, '').trim();\n  mensajes = JSON.parse(clean);\n} catch(e) {\n  mensajes = {\n    mensaje_cliente: 'Lo sentimos, estamos experimentando dificultades técnicas. Por favor intenta más tarde.',\n    mensaje_tecnico: `Error no parseado: ${respuesta}`\n  };\n}\n\nreturn [{\n  json: {\n    mensaje_cliente: mensajes.mensaje_cliente,\n    mensaje_tecnico: mensajes.mensaje_tecnico,\n    nodo_fallido: $('Error Trigger').first().json.execution.lastNodeExecuted,\n    workflow: $('Error Trigger').first().json.workflow.name\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        560,
+        0
+      ],
+      "id": "7ed434b9-a672-4c9f-afa1-5ba65ea14312",
+      "name": "Parsear_mensaje_de_error"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Parsear_mensaje_de_error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar_mensaje_cliente": {
+      "main": [
+        [
+          {
+            "node": "Enviar_mensaje_tecnico",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar_mensaje_tecnico": {
+      "main": [
+        [
+          {
+            "node": "Metricas_error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear_mensaje_de_error": {
+      "main": [
+        [
+          {
+            "node": "Enviar_mensaje_cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "58f65101-e1e8-4a5b-a05b-b11d3af319ea",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e7d9cdb62f89063308717315c74ebcc8bce4d6f3340640907dc17977a9ebe636"
+  },
+  "id": "Lg4ma3dxwZeqgxOJDE0ew",
+  "tags": [
+    {
+      "updatedAt": "2026-02-12T16:39:27.117Z",
+      "createdAt": "2026-02-12T16:39:27.117Z",
+      "id": "bmXRomoTBzcmjgGU",
+      "name": "agente ia"
+    },
+    {
+      "updatedAt": "2026-04-08T22:16:50.692Z",
+      "createdAt": "2026-04-08T22:16:50.692Z",
+      "id": "u83OQwECnGkjvQUP",
+      "name": "error"
+    }
+  ]
+}

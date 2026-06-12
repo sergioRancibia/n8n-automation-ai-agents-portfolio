@@ -1,0 +1,312 @@
+{
+  "name": "Dashboard_Sheets",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "9e149929-693e-4fce-afe1-0b0fb84a47ba",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT \n  m.ticket_id,\n  m.cliente_id,\n  c.nombre,\n  m.modelo,\n  m.tokens_input,\n  m.tokens_output,\n  m.costo_usd,\n  m.tiempo_ms,\n  m.estado,\n  t.urgencia,\n  t.escalado,\n  m.created_at\nFROM metricas m\nLEFT JOIN clientes c ON m.cliente_id = c.id\nLEFT JOIN tickets t ON m.ticket_id = t.id\nORDER BY m.created_at DESC\nLIMIT 10;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        208,
+        0
+      ],
+      "id": "cf0f4be9-4606-4133-9f3b-0e37679d0dbe",
+      "name": "Obtener_info_ticket_cliente",
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "clear",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Dashboard_reto_final",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1omiRQw0u9_Tp8R_wcelfbZHdKiknZvjHygjAB1rCZgQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Metricas_raw",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1omiRQw0u9_Tp8R_wcelfbZHdKiknZvjHygjAB1rCZgQ/edit#gid=0"
+        },
+        "clear": "specificRange",
+        "range": "A2:Z1000"
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        416,
+        0
+      ],
+      "id": "2c4f996a-9d82-42b5-894f-68871380b504",
+      "name": "Clear sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CQktU6Z0cucdLu8Y",
+          "name": "Metricas"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_SPREADSHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Dashboard_reto_final",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1omiRQw0u9_Tp8R_wcelfbZHdKiknZvjHygjAB1rCZgQ/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Metricas_raw",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/1omiRQw0u9_Tp8R_wcelfbZHdKiknZvjHygjAB1rCZgQ/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ticket_id": "={{ $json.ticket_id }}",
+            "cliente_id": "={{ $json.cliente_id }}",
+            "modelo": "={{ $json.modelo }}",
+            "tokens_input": "={{ $json.tokens_input }}",
+            "tokens_output": "={{ $json.tokens_output }}",
+            "costo_usd": "={{ $json.costo_usd }}",
+            "tiempo_ms": "={{ $json.tiempo_ms }}",
+            "created_at": "={{ $json.created_at }}",
+            "estado": "={{ $json.estado }}",
+            "nombre": "={{ $json.nombre }}",
+            "urgencia": "={{ $json.urgencia }}",
+            "escalado": "={{ $json.escalado }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "ticket_id",
+              "displayName": "ticket_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "cliente_id",
+              "displayName": "cliente_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "nombre",
+              "displayName": "nombre",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "urgencia",
+              "displayName": "urgencia",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "escalado",
+              "displayName": "escalado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true,
+              "removed": false
+            },
+            {
+              "id": "modelo",
+              "displayName": "modelo",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tokens_input",
+              "displayName": "tokens_input",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tokens_output",
+              "displayName": "tokens_output",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "costo_usd",
+              "displayName": "costo_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tiempo_ms",
+              "displayName": "tiempo_ms",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "estado",
+              "displayName": "estado",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "created_at",
+              "displayName": "created_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        624,
+        0
+      ],
+      "id": "cc425332-2747-4ce6-97f8-735563c295f5",
+      "name": "Append row in sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "CQktU6Z0cucdLu8Y",
+          "name": "Metricas"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Obtener_info_ticket_cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Obtener_info_ticket_cliente": {
+      "main": [
+        [
+          {
+            "node": "Clear sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Clear sheet": {
+      "main": [
+        [
+          {
+            "node": "Append row in sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "Lg4ma3dxwZeqgxOJDE0ew",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "cd14ac19-0a0f-425e-8631-8ff96c3435ad",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e7d9cdb62f89063308717315c74ebcc8bce4d6f3340640907dc17977a9ebe636"
+  },
+  "id": "oBUCBnVsP2HV8JJ4j4JJo",
+  "tags": [
+    {
+      "updatedAt": "2026-04-09T17:46:49.517Z",
+      "createdAt": "2026-04-09T17:46:49.517Z",
+      "id": "mgZcU7gmlZ9CRjHr",
+      "name": "sheets"
+    },
+    {
+      "updatedAt": "2026-04-09T17:46:57.624Z",
+      "createdAt": "2026-04-09T17:46:57.624Z",
+      "id": "sNlg2URyKQ1opU4m",
+      "name": "dashboard"
+    }
+  ]
+}

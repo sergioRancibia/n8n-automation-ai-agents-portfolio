@@ -1,0 +1,316 @@
+{
+  "name": "Agente_RAG_final",
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "c055762a-8fe7-4141-a639-df2372f30060",
+      "typeVersion": 1.1,
+      "name": "When_Executed_by_Main_Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "position": [
+        272,
+        352
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://openrouter.ai/api/v1/embeddings",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_API_KEY"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "model",
+              "value": "text-embedding-3-small"
+            },
+            {
+              "name": "input",
+              "value": "={{ $json.mensaje_actual }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        496,
+        352
+      ],
+      "id": "9cab4f9b-a774-42b9-ae51-82928d5bdf1f",
+      "name": "Embeddings_Openrouter"
+    },
+    {
+      "parameters": {
+        "jsCode": "const embedding = $input.first().json.data[0].embedding;\nconst datos = $('When_Executed_by_Main_Workflow').first().json;\n\nreturn [{\n  json: {\n    ...datos,\n    embedding: JSON.stringify(embedding)\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        704,
+        352
+      ],
+      "id": "9c24bbe8-af20-48f3-a980-85f197c646db",
+      "name": "Parsear_embedding_mensaje"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT contenido, metadata, similarity\nFROM buscar_documentos(\n  '{{ $json.embedding }}'::vector,\n  5,\n  0.5\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        912,
+        352
+      ],
+      "id": "b1588b8f-bd22-42a4-aff6-9f7983021728",
+      "name": "Buscar_documentos",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const docs = $input.all();\nconst datos = $('When_Executed_by_Main_Workflow').first().json;\n\nlet contexto = '';\nif (docs.length === 0 || !docs[0].json.contenido) {\n  contexto = 'No se encontró información relevante en los documentos.';\n} else {\n  contexto = docs.map((d, i) => \n    `[Fuente ${i+1}] (similitud: ${(d.json.similarity * 100).toFixed(1)}%):\\n${d.json.contenido}`\n  ).join('\\n\\n');\n}\n\nreturn [{\n  json: {\n    ...datos,\n    contexto\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        352
+      ],
+      "id": "490bc121-3126-4b3a-8693-1ff6eba3484b",
+      "name": "Formatear_contexto"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.mensaje_actual }}",
+        "needsFallback": true,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "message": "=Historial previo:\n{{ $json.historial_texto }}\n\nInformación disponible:\n{{ $json.contexto }}\n\nPregunta del cliente: {{ $json.mensaje_actual }}"
+            },
+            {
+              "message": "Eres un asistente virtual de Inmobiliaria CBBA, Cochabamba, Bolivia. Respondes preguntas de clientes usando ÚNICAMENTE la información del contexto proporcionado.  Reglas importantes: - Responde SOLO con información del contexto - Si el contexto no tiene la información, di: \"No tengo esa información disponible, te recomiendo contactarnos directamente\" - Menciona siempre la fuente (Fuente 1, Fuente 2, etc.) - Sé amable, conciso y profesional - Responde en español - No inventes precios, direcciones ni datos que no estén en el contexto"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1344,
+        352
+      ],
+      "id": "ea966399-33e7-440b-94cd-e84eb04e581f",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1296,
+        624
+      ],
+      "id": "38b63ac0-d402-4498-97fa-853b6fcc7925",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "c5mVSx5rxzbAYnNA",
+          "name": "Groq account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1488,
+        624
+      ],
+      "id": "f8829f3f-8685-40e0-8e02-7201ebf7b23d",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iDV373zOFOyfOOuZ",
+          "name": "Google Gemini(PaLM) Api account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const respuesta = $input.first().json.text;\nconst datos = $('When_Executed_by_Main_Workflow').first().json;\n\nreturn [{\n  json: {\n    ...datos,\n    respuesta: respuesta,\n    agente_usado: 'RAG'\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1696,
+        352
+      ],
+      "id": "32ecf915-da2b-464a-be7b-a61dbf1f5b58",
+      "name": "Formatear_respuesta_RAG"
+    }
+  ],
+  "pinData": {
+    "When_Executed_by_Main_Workflow": [
+      {
+        "json": {
+          "cliente_id": "fd26540e-1c31-4081-a895-1fae36c07449",
+          "mensaje_actual": "Puedo consultar algo?",
+          "historial_texto": "Cliente: Aún tengo problemas con el servicio, necesito contactar a un técnico\nAsistente: Hola Sergio, lamentamos mucho los inconvenientes que estás experimentando. Hemos registrado tu caso (reclamo: Problemas con el servicio, necesito técnico). Un representante revisará tu situación y te contactará pronto. ¿Hay algo más en lo que pueda ayudarte?\nCliente: Hola\nAsistente: Hola Sergio, ¿cómo estás? ¿Hay algo más en lo que pueda ayudarte mientras esperas la respuesta de nuestro representante?\nCliente: Hola buenas tardes\nAsistente: Hola Sergio, ¿cómo estás? ¿Hay algo más en lo que pueda ayudarte mientras esperas la respuesta de nuestro representante?\nCliente: Cuantas propiedades hay a la venta?\nAsistente: Hola Sergio, según nuestras listas de propiedades en venta, tenemos disponibles varias opciones en Cochabamba. En concreto, tenemos:\n\n- Casas en Cochabamba (varias opciones, precio variable, 3-5 habitaciones)\n- Departamentos en Cochabamba (varias opciones, precio variable, 2-3 habitaciones)\n- Terrenos en Cochabamba (no se especifica la cantidad)\n\nEs importante mencionar que los precios y detalles de cada propiedad pueden variar. Si deseas obtener más información o visitar alguna de estas propiedades, te recomiendo contactarnos directamente para asesorarte mejor.\nCliente: Saludos. Buenas tardes\nAsistente: Hola Sergio, ¿cómo estás? ¿Hay algo más en lo que pueda ayudarte mientras esperas la respuesta de nuestro representante?",
+          "nombre": "Sergio R. Arancibia M.",
+          "es_vip": false,
+          "telefono": "59179757761",
+          "tiempo_inicio": 1775769804744,
+          "agente": "RAG",
+          "razon_supervisor": "pregunta sobre propiedades"
+        },
+        "pairedItem": {
+          "item": 0
+        }
+      }
+    ]
+  },
+  "connections": {
+    "When_Executed_by_Main_Workflow": {
+      "main": [
+        [
+          {
+            "node": "Embeddings_Openrouter",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings_Openrouter": {
+      "main": [
+        [
+          {
+            "node": "Parsear_embedding_mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear_embedding_mensaje": {
+      "main": [
+        [
+          {
+            "node": "Buscar_documentos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar_documentos": {
+      "main": [
+        [
+          {
+            "node": "Formatear_contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Formatear_contexto": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Formatear_respuesta_RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "Lg4ma3dxwZeqgxOJDE0ew",
+    "callerPolicy": "workflowsFromSameOwner",
+    "binaryMode": "separate"
+  },
+  "versionId": "77f0058a-6210-411d-896e-4b947678bbf1",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e7d9cdb62f89063308717315c74ebcc8bce4d6f3340640907dc17977a9ebe636"
+  },
+  "id": "6UBqCSPwybMxiOQ0",
+  "tags": []
+}

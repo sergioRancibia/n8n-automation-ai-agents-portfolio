@@ -1,0 +1,886 @@
+{
+  "name": "Reto_Final_Main",
+  "nodes": [
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json;\nconst mensaje = body.messages?.[0]?.text?.body || '';\nconst telefono = body.messages?.[0]?.from || '';\nconst nombre = body.contacts?.[0]?.profile?.name || 'Cliente';\nconst mensaje_id = body.messages?.[0]?.id || '';\nconst fromMe = body.messages?.[0]?.from_me || false;\n\n// Ignorar si no hay mensaje, es del propio bot, o es mensaje de error\nif (!mensaje || !telefono || fromMe || \n    mensaje.startsWith('🔴') || \n    mensaje.startsWith('Lo sentimos') ||\n    mensaje.startsWith('Hola') && mensaje.includes('ERROR')) {\n  return [{ json: { ignorar: true } }];\n}\n\nreturn [{\n  json: {\n    mensaje,\n    telefono,\n    nombre,\n    mensaje_id,\n    timestamp: new Date().toISOString(),\n    tiempo_inicio: Date.now()\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        176,
+        0
+      ],
+      "id": "61da95aa-8b5a-4200-af70-2521a0a02e36",
+      "name": "Normalizar_mensaje"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e54a98a7-d65e-4e09-8e36-a1d71b137933",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        592,
+        0
+      ],
+      "id": "9cdd0847-0074-4cc4-a025-0442e6c43971",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT id, nombre, es_vip \nFROM clientes \nWHERE telefono = '{{ $json.telefono }}'\nLIMIT 1;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        384,
+        0
+      ],
+      "id": "e8e6ebeb-5541-4267-b29c-5d265d815da2",
+      "name": "Verificar_cliente",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1024,
+        0
+      ],
+      "id": "90eb218a-16ef-4147-90fb-a6d17b7218ac",
+      "name": "Merge"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO clientes (telefono, nombre, es_vip)\nVALUES (\n  '{{ $('Normalizar_mensaje').item.json.telefono }}',\n  '{{ $('Normalizar_mensaje').item.json.nombre }}',\n  false\n)\nRETURNING id, nombre, es_vip;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        800,
+        112
+      ],
+      "id": "00accdc1-c9bb-487c-a7ac-029973aad176",
+      "name": "Registrar_cliente_default_no_vip",
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT rol, mensaje, created_at\nFROM historial\nWHERE cliente_id = '{{ $json.id }}'\nORDER BY created_at ASC\nLIMIT 10;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        1232,
+        0
+      ],
+      "id": "ef6a1d2c-58f4-4e6a-a53f-64b05ce05676",
+      "name": "Recuperar_historial",
+      "alwaysOutputData": true,
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst cliente_id = $('Merge').first().json.id;\nconst mensaje_actual = $('Normalizar_mensaje').first().json.mensaje;\n\nlet historial_texto = '';\n\nif (items.length === 0 || !items[0].json.rol) {\n  historial_texto = 'Sin historial previo.';\n} else {\n  historial_texto = items.map(item => \n    `${item.json.rol === 'user' ? 'Cliente' : 'Asistente'}: ${item.json.mensaje}`\n  ).join('\\n');\n}\n\nreturn [{\n  json: {\n    cliente_id,\n    mensaje_actual,\n    historial_texto,\n    nombre: $('Merge').first().json.nombre,\n    es_vip: $('Merge').first().json.es_vip,\n    telefono: $('Normalizar_mensaje').first().json.telefono,\n    tiempo_inicio: $('Normalizar_mensaje').first().json.tiempo_inicio\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        0
+      ],
+      "id": "fc913a09-0483-4c28-b589-8c17b96884b1",
+      "name": "Formatear_historial"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "Eres el supervisor de atención al cliente de Inmobiliaria CBBA, Cochabamba, Bolivia.\nTu única tarea es analizar el mensaje del cliente y decidir qué agente debe responder.\n\nResponde ÚNICAMENTE con este JSON, sin texto adicional:\n{\"agente\": \"RAG\", \"razon\": \"explicación breve\"}\n\nReglas de decisión (en orden de prioridad):\n- IGNORAR: spam, caracteres aleatorios, letras sin sentido (\"a\", \"asdf\", \"dUFVU\", \"Esadnsoye\"), números solos o es un mensaje que empiece con \"🔴\" o \"Lo sentimos\"\n- SALUDO: saludos simples sin pregunta (\"hola\", \"buenos días\", \"gracias\", \"ok\")\n- CLASIFICADOR: quejas, reclamos, urgencias, problemas, sentimientos negativos\n- RAG: preguntas sobre propiedades, precios, zonas, alquiler, compra, venta, anticrético, documentos, procesos\n- En caso de duda genuina → RAG",
+        "needsFallback": true,
+        "messages": {
+          "messageValues": [
+            {
+              "type": "HumanMessagePromptTemplate",
+              "message": "=Historial previo: {{ $json.historial_texto }}  Mensaje del cliente: {{ $json.mensaje_actual }}"
+            },
+            {
+              "message": "Eres el supervisor de atención al cliente de Inmobiliaria CBBA, Cochabamba, Bolivia. Tu única tarea es analizar el mensaje del cliente y decidir qué agente debe responder.  Responde ÚNICAMENTE con este JSON, sin texto adicional: {\"agente\": \"RAG\", \"razon\": \"explicación breve\"}  Reglas de decisión: - RAG: preguntas sobre propiedades, precios, zonas, alquiler, compra, venta, anticrético, documentos, procesos - CLASIFICADOR: quejas, reclamos, urgencias, problemas, expresiones de molestia o sentimientos negativos - SALUDO: saludos simples (\"hola\", \"buenos días\", \"ok\"), mensajes sin pregunta concreta - IGNORAR: spam, caracteres aleatorios, mensajes sin sentido (\"dUFVUDEBFVHU\") - En caso de duda → RAG"
+            }
+          ]
+        },
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        1648,
+        0
+      ],
+      "id": "1a61113e-5094-4e85-8fa8-a0536ecc59a9",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "llama-3.1-8b-instant",
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGroq",
+      "typeVersion": 1,
+      "position": [
+        1584,
+        272
+      ],
+      "id": "ab56360c-0954-4916-b157-11d405fcd2ce",
+      "name": "Groq Chat Model",
+      "credentials": {
+        "groqApi": {
+          "id": "c5mVSx5rxzbAYnNA",
+          "name": "Groq account 5"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "options": {
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        1776,
+        272
+      ],
+      "id": "f54c0cf4-a106-45ab-b4fd-e6a103472f6c",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "iDV373zOFOyfOOuZ",
+          "name": "Google Gemini(PaLM) Api account 7"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const respuesta = $input.first().json.text;\n\nlet decision;\ntry {\n  const clean = respuesta.replace(/```json|```/g, '').trim();\n  decision = JSON.parse(clean);\n} catch(e) {\n  decision = { agente: 'RAG', razon: 'fallback por error' };\n}\n\nreturn [{\n  json: {\n    ...$('Formatear_historial').first().json,\n    agente: decision.agente,\n    razon_supervisor: decision.razon\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2000,
+        0
+      ],
+      "id": "aac118dc-a323-4340-99a7-433ac04d460b",
+      "name": "Parsear_supervisor"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.agente }}",
+                    "rightValue": "RAG",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "206986de-448c-485c-9108-6968383ef016"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "e34de6c2-0ef1-4ec8-85bb-76f0bd959ec3",
+                    "leftValue": "={{ $json.agente }}",
+                    "rightValue": "CLASIFICADOR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "573c62b0-9f9d-47ab-8fec-2e8d99d0560b",
+                    "leftValue": "={{ $json.agente }}",
+                    "rightValue": "SALUDO",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "6b7db33e-bdeb-43bf-acc5-d66539067661",
+                    "leftValue": "={{ $json.agente }}",
+                    "rightValue": "IGNORAR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals",
+                      "name": "filter.operator.equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2208,
+        -32
+      ],
+      "id": "502805cb-be37-458a-b4a5-da4ab06a6dc9",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "k37my59wlOiPi04y",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/k37my59wlOiPi04y",
+          "cachedResultName": "Agente_Clasificador_final"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2496,
+        -224
+      ],
+      "id": "320e31a6-c394-45b3-9227-1aeedee9b1fd",
+      "name": "Ejecutar_Agente_Clasificador"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "6UBqCSPwybMxiOQ0",
+          "mode": "list",
+          "cachedResultUrl": "/workflow/6UBqCSPwybMxiOQ0",
+          "cachedResultName": "Agente_RAG_final"
+        },
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "matchingColumns": [],
+          "schema": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.3,
+      "position": [
+        2496,
+        -448
+      ],
+      "id": "fd20fa9e-d02a-48aa-8a11-c595e77e53ec",
+      "name": "Ejecutar_Agente_RAG"
+    },
+    {
+      "parameters": {
+        "updates": [
+          "messages"
+        ],
+        "options": {}
+      },
+      "type": "n8n-nodes-base.whatsAppTrigger",
+      "typeVersion": 1,
+      "position": [
+        -32,
+        0
+      ],
+      "id": "06efb759-65c9-49c1-883d-37a12cc6f98c",
+      "name": "WhatsApp Trigger",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "credentials": {
+        "whatsAppTriggerApi": {
+          "id": "0PdZfXmOu1ylzcdS",
+          "name": "WhatsApp ID11"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const nombre = $json.nombre.split(' ')[0]; // solo primer nombre\n\nreturn [{\n  json: {\n    ...$json,\n    respuesta: `¡Hola ${nombre}! 👋 Soy el asistente virtual de Inmobiliaria CBBA. Puedo ayudarte con información sobre propiedades en venta, alquiler o anticrético en Cochabamba. ¿En qué te puedo ayudar?`\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2464,
+        16
+      ],
+      "id": "fa423bcf-1aef-4f4a-be19-e20bb5018557",
+      "name": "Mensaje_de_Saludo"
+    },
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        2880,
+        -240
+      ],
+      "id": "51a39034-cc7e-4e69-9e4e-a7fa587646a4",
+      "name": "Merge1"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO historial (cliente_id, rol, mensaje)\nVALUES \n  ('{{ $json.cliente_id }}', 'user', '{{ $json.mensaje_actual }}'),\n  ('{{ $json.cliente_id }}', 'assistant', '{{ $json.respuesta }}');",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3104,
+        -240
+      ],
+      "id": "a67f315a-4cc2-496a-af33-ace0865e74d4",
+      "name": "Guardar_historial",
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO tickets (cliente_id, mensaje_original, urgencia, sentimiento, escalado, agente_usado, telefono)\nVALUES (\n  '{{ $('Merge1').item.json.cliente_id }}',\n  '{{ $('Merge1').item.json.mensaje_actual }}',\n  '{{ $('Merge1').item.json.urgencia ?? 'media' }}',\n  '{{ $('Merge1').item.json.sentimiento ?? 'neutro' }}',\n  {{ $('Merge1').item.json.escalado ?? false }},\n  '{{ $('Merge1').item.json.agente_usado }}',\n  '{{ $('Merge1').item.json.telefono }}'\n)\nRETURNING id;",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3312,
+        -240
+      ],
+      "id": "6d699ee1-88e7-4126-980d-7b7a6043c93c",
+      "name": "Insertar_ticket",
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "INSERT INTO metricas (ticket_id, cliente_id, modelo, tokens_input, tokens_output, costo_usd, tiempo_ms, estado)\nVALUES (\n  '{{ $json.ticket_id }}',\n  '{{ $json.cliente_id }}',\n  '{{ $json.modelo_usado }}',\n  {{ $json.tokens_input }},\n  {{ $json.tokens_output }},\n  {{ $json.costo_usd }},\n  {{ Date.now() - $json.tiempo_inicio }},\n  'exito'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3920,
+        -240
+      ],
+      "id": "33e24733-7b68-4151-b333-d7e9e90d0399",
+      "name": "Insertar_metricas",
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const datos = $('Merge1').first().json;\n\nconst precios = $('Leer_precios').all().reduce((acc, item) => {\n  acc[item.json.modelo] = item.json;\n  return acc;\n}, {});\n\nconst precioModelo = precios['meta-llama/llama-3.1-8b-instruct'] || \n  { precio_input: 0.00000005, precio_output: 0.00000008 };\n\nconst tokens_input = Math.round(\n  (datos.mensaje_actual.length + datos.historial_texto.length) / 4\n);\nconst tokens_output = Math.round((datos.respuesta?.length || 0) / 4);\nconst total_tokens = tokens_input + tokens_output;\n\nconst costo_usd = (\n  (tokens_input * precioModelo.precio_input) + \n  (tokens_output * precioModelo.precio_output)\n).toFixed(8);\n\nconst modeloMap = {\n  'RAG': 'groq/llama-3.1-8b-instruct (fallback: gemini-2.5-flash)',\n  'CLASIFICADOR': 'groq/llama-3.1-8b-instruct (fallback: gemini-2.5-flash)',\n  'SALUDO': 'groq/llama-3.1-8b-instruct (fallback: gemini-2.5-flash)'\n};\n\nconst modelo_usado = modeloMap[datos.agente_usado] || 'groq/llama-3.1-8b-instruct (fallback: gemini-2.5-flash)';\n\nconst ticket_id = $(\"Insertar_ticket\").first().json.id;\n\nreturn [{\n  json: {\n    ...datos,\n    tokens_input,\n    tokens_output,\n    total_tokens,\n    costo_usd: parseFloat(costo_usd),\n    modelo_usado,\n    ticket_id\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3712,
+        -240
+      ],
+      "id": "9a7f98a9-318e-4d5b-b1d2-5d944bf5d148",
+      "name": "Calcular_costo"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT modelo, precio_input, precio_output \nFROM precios_modelos\nWHERE modelo IN (\n  'meta-llama/llama-3.1-8b-instruct',\n  'google/gemini-2.5-flash',\n  'openai/text-embedding-3-small'\n);",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.6,
+      "position": [
+        3520,
+        -240
+      ],
+      "id": "9d1f93c9-0ef6-4541-bf49-a8a63d3276c9",
+      "name": "Leer_precios",
+      "credentials": {
+        "postgres": {
+          "id": "t3qImJO0DYQ8XaSe",
+          "name": "Supabase_reto_fin"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "YOUR_RECIPIENT_PHONE_NUMBER",
+        "textBody": "={{ $json.respuesta }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        2672,
+        16
+      ],
+      "id": "d82f2425-9bf2-4192-8217-6383791e5a34",
+      "name": "Mensaje_saludo_inicial",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "8ZBpjv4pwTJFpKhF",
+          "name": "WhatsApp Bussiness account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "send",
+        "phoneNumberId": "YOUR_PHONE_NUMBER_ID",
+        "recipientPhoneNumber": "YOUR_RECIPIENT_PHONE_NUMBER",
+        "textBody": "={{ $('Calcular_costo').item.json.respuesta }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.whatsApp",
+      "typeVersion": 1.1,
+      "position": [
+        4128,
+        -240
+      ],
+      "id": "f17b1dc1-3841-424b-ad6b-a209cc97344f",
+      "name": "Enviar_mensaje_",
+      "webhookId": "YOUR_WEBHOOK_ID",
+      "credentials": {
+        "whatsAppApi": {
+          "id": "8ZBpjv4pwTJFpKhF",
+          "name": "WhatsApp Bussiness account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Normalizar_mensaje": {
+      "main": [
+        [
+          {
+            "node": "Verificar_cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Verificar_cliente": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Registrar_cliente_default_no_vip",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Registrar_cliente_default_no_vip": {
+      "main": [
+        [
+          {
+            "node": "Merge",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Merge": {
+      "main": [
+        [
+          {
+            "node": "Recuperar_historial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Recuperar_historial": {
+      "main": [
+        [
+          {
+            "node": "Formatear_historial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Formatear_historial": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Groq Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Parsear_supervisor",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parsear_supervisor": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Ejecutar_Agente_RAG",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ejecutar_Agente_Clasificador",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mensaje_de_Saludo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "WhatsApp Trigger": {
+      "main": [
+        [
+          {
+            "node": "Normalizar_mensaje",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ejecutar_Agente_Clasificador": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Ejecutar_Agente_RAG": {
+      "main": [
+        [
+          {
+            "node": "Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge1": {
+      "main": [
+        [
+          {
+            "node": "Guardar_historial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Guardar_historial": {
+      "main": [
+        [
+          {
+            "node": "Insertar_ticket",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insertar_ticket": {
+      "main": [
+        [
+          {
+            "node": "Leer_precios",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mensaje_de_Saludo": {
+      "main": [
+        [
+          {
+            "node": "Mensaje_saludo_inicial",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insertar_metricas": {
+      "main": [
+        [
+          {
+            "node": "Enviar_mensaje_",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calcular_costo": {
+      "main": [
+        [
+          {
+            "node": "Insertar_metricas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Leer_precios": {
+      "main": [
+        [
+          {
+            "node": "Calcular_costo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Enviar_mensaje_": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "Lg4ma3dxwZeqgxOJDE0ew",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "d642e747-4009-47c3-8578-9569f74df437",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "e7d9cdb62f89063308717315c74ebcc8bce4d6f3340640907dc17977a9ebe636"
+  },
+  "id": "YybIrtijZnWrFAd8b6i3C",
+  "tags": [
+    {
+      "updatedAt": "2026-02-27T23:49:30.093Z",
+      "createdAt": "2026-02-27T23:49:30.093Z",
+      "id": "WuxCORSN3YJltisN",
+      "name": "BOT"
+    },
+    {
+      "updatedAt": "2026-02-12T16:39:27.117Z",
+      "createdAt": "2026-02-12T16:39:27.117Z",
+      "id": "bmXRomoTBzcmjgGU",
+      "name": "agente ia"
+    },
+    {
+      "updatedAt": "2026-02-09T20:17:26.773Z",
+      "createdAt": "2026-02-09T20:17:26.773Z",
+      "id": "xjQcgYfXDDxJZ4cj",
+      "name": "array of objects"
+    }
+  ]
+}
