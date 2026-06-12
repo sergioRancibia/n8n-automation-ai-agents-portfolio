@@ -23,6 +23,10 @@ A complete customer service and data processing pipeline built for a real estate
 - **LLMs:** Meta LLaMA 3.1, Google Gemini 2.5 Flash, OpenAI Text Embeddings.
 - **Integrations:** WhatsApp Business API, Supabase (PostgreSQL), Google Sheets, Pinecone.
 
+**Architecture Overview:**
+
+![Workflow Architecture](./n8n-ai-automation-system/screenshots/workflow-overview.jpg)
+
 ---
 
 ## 🛠️ Skills & Tools

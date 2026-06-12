@@ -16,4 +16,4 @@ This directory contains a complete AI-powered workflow automation system built w
 All sensitive credentials, API keys, and phone numbers have been redacted (`YOUR_API_KEY`, `YOUR_WEBHOOK_ID`, etc.) for security. To import these workflows into your n8n instance, you must configure the corresponding credentials in your environment.
 
 ## Screenshots
-Please refer to the `screenshots/` folder for visual overviews of the workflows and system architecture.
+![Workflow Overview](./screenshots/workflow-overview.jpg)
