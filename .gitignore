@@ -1,0 +1,23 @@
+# Entornos virtuales y dependencias
+node_modules/
+.env
+.venv/
+venv/
+__pycache__/
+
+# Archivos del sistema
+.DS_Store
+Thumbs.db
+
+# Credenciales y archivos locales
+*.pem
+*.key
+credentials.json
+local.json
+
+# IDEs
+.vscode/
+.idea/
+
+# Logs
+*.log
